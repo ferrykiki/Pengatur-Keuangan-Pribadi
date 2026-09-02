@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pengatur Keuangan Pribadi</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fa fa-wallet"></i> Pengatur Keuangan Pribadi</h1>
+            <p>Gaji Bulanan: <span class="gaji" id="tampilGaji">Rp5.000.000</span>
+               <button class="btn-ubah" id="btnBukaPengaturan"><i class="fa fa-cog"></i> Ubah</button>
+            </p>
+        </header>
+
+        <!-- Modal Pengaturan -->
+        <div id="modalPengaturan" class="modal tersembunyi">
+            <div class="modal-konten">
+                <div class="modal-judul">
+                    <h3>⚙️ Ubah Pemasukan & Anggaran</h3>
+                    <span id="btnTutupModal" class="tutup">&times;</span>
+                </div>
+                <div class="modal-isi">
+                    <div class="form-group">
+                        <label>Gaji / Pemasukan Bulanan (Rp)</label>
+                        <input type="number" id="inputGaji" placeholder="Contoh: 5000000">
+                    </div>
+                    <h4>Ubah Batas Anggaran per Kategori:</h4>
+                    <div id="formAnggaran"></div>
+                </div>
+                <div class="modal-bawah">
+                    <button id="btnSimpanPengaturan" class="btn">💾 Simpan Perubahan</button>
+                </div>
+            </div>
+        </div>
+
+        <section class="dashboard">
+            <div class="card">
+                <h3>Total Pemasukan</h3>
+                <p class="value success" id="totalPemasukan">Rp5.000.000</p>
+            </div>
+            <div class="card">
+                <h3>Total Pengeluaran</h3>
+                <p class="value danger" id="totalPengeluaran">Rp0</p>
+            </div>
+            <div class="card">
+                <h3>Sisa Uang</h3>
+                <p class="value primary" id="sisaUang">Rp5.000.000</p>
+            </div>
+        </section>
+
+        <section class="row">
+            <div class="card half">
+                <h3>📊 Pengeluaran per Kategori</h3>
+                <div class="chart-box">
+                    <canvas id="grafikPengeluaran"></canvas>
+                </div>
+            </div>
+            <div class="card half">
+                <h3>📋 Anggaran Bulanan</h3>
+                <div class="budget-list" id="daftarAnggaran"></div>
+            </div>
+        </section>
+
+        <section class="card">
+            <h3>➕ Catat Transaksi Harian</h3>
+            <form id="formTransaksi">
+                <div class="form-group">
+                    <label>Tanggal</label>
+                    <input type="date" id="tglTransaksi" required>
+                </div>
+                <div class="form-group">
+                    <label>Kategori</label>
+                    <select id="kategoriTransaksi">
+                        
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Jumlah (Rp)</label>
+                    <input type="number" min="0" id="jumlahTransaksi" placeholder="Contoh: 50000" required>
+                </div>
+                <div class="form-group btn-wrap">
+                    <button type="submit" class="btn">Simpan</button>
+                </div>
+            </form>
+            <div id="peringatanAnggaran" class="alert hidden">
+                <i class="fa fa-exclamation-triangle"></i>
+                <span id="teksPeringatan"></span>
+            </div>
+        </section>
+
+        <section class="card">
+            <h3>📝 Riwayat Transaksi</h3>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tanggal</th>
+                            <th>Kategori</th>
+                            <th>Jumlah</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="riwayatTransaksi">
+                        <tr><td colspan="4" class="empty">Belum ada transaksi</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <footer>
+            Pengatur Keuangan Pribadi — Data tersimpan aman di perangkatmu 💡
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
