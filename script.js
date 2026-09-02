@@ -42,11 +42,40 @@ function bukaBasisData() {
 }
 
 // === FUNGSI BASIS DATA ===
+async function simpanPengaturan() {
+    const gajiBaru = parseInt(document.getElementById("inputGaji").value) || 0;
+    if (gajiBaru < 1) { alert("Masukkan jumlah pemasukan yang benar!"); return; }
+    GAJI_BULANAN = gajiBaru;
+
+    // Baca SEMUA input dari form dan perbarui anggaran
+    document.querySelectorAll(".input-anggaran").forEach(input => {
+        const k = input.dataset.kat;
+        const nilai = parseInt(input.value) || 0;
+        if (anggaran[k]) {
+            anggaran[k].batas = nilai;
+        }
+    });
+
+    await simpanPengaturanKeDB();
+    tutupModal();
+    perbaruiSemua(); 
+    alert("✅ Pemasukan & anggaran berhasil diperbarui!");
+}
+// === SIMPAN PENGATURAN KE BASIS DATA ===
 async function simpanPengaturanKeDB() {
-    const tx = db.transaction("pengaturan", "readwrite");
-    tx.objectStore("pengaturan").put({ kunci: "gaji_bulanan", nilai: GAJI_BULANAN });
-    Object.entries(anggaran).forEach(([k, v]) => {
-        tx.objectStore("pengaturan").put({ kunci: `anggaran_${k}`, nilai: { nama: v.nama, batas: v.batas } });
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction("pengaturan", "readwrite");
+        const toko = tx.objectStore("pengaturan");
+
+        // Simpan gaji bulanan
+        toko.put({ kunci: "gaji_bulanan", nilai: GAJI_BULANAN });
+
+        // ⚠️ SIMPAN SEMUA KATEGORI (termasuk yang baru ditambah & yang dihapus)
+        toko.delete("semua_anggaran"); a
+        toko.put({ kunci: "semua_anggaran", nilai: anggaran }); 
+
+        tx.oncomplete = () => resolve();
+        tx.onerror = (e) => reject(e.target.error);
     });
 }
 
@@ -57,13 +86,21 @@ async function muatPengaturanDariDB() {
         const semua = toko.getAll();
         semua.onsuccess = (e) => {
             const daftar = e.target.result;
+            
+            // Mulai dengan anggaran bawaan
             GAJI_BULANAN = 5000000;
             anggaran = JSON.parse(JSON.stringify(ANGGARAN_DEFAULT));
 
             daftar.forEach(item => {
                 if (item.kunci === "gaji_bulanan") {
                     GAJI_BULANAN = item.nilai;
-                } else if (item.kunci.startsWith("anggaran_")) {
+                }
+                // ✅ BACA SEMUA KATEGORI TERBARU (termasuk yang ditambah/dihapus)
+                else if (item.kunci === "semua_anggaran") {
+                    anggaran = item.nilai; 
+                }
+                // Yang lama tetap dipertahankan untuk data lama
+                else if (item.kunci.startsWith("anggaran_")) {
                     const k = item.kunci.replace("anggaran_", "");
                     if (anggaran[k]) {
                         anggaran[k].batas = item.nilai.batas;
@@ -117,7 +154,7 @@ function formatRupiah(angka) {
     return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(angka);
 }
 
-// === PERBARUI SEMUA TAMPILAN ===
+// === PERBARUI SEMUA BAGIAN HALAMAN ===
 function perbaruiSemua() {
     const totalPengeluaran = Object.values(anggaran).reduce((sum, k) => sum + (k.terpakai || 0), 0);
     const sisa = GAJI_BULANAN - totalPengeluaran;
@@ -127,30 +164,30 @@ function perbaruiSemua() {
     document.getElementById("totalPengeluaran").textContent = formatRupiah(totalPengeluaran);
     document.getElementById("sisaUang").textContent = formatRupiah(Math.max(0, sisa));
 
-    renderAnggaran();
-    perbaruiPilihanKategori();
-    renderRiwayat();
-    perbaruiGrafik();
+    perbaruiPilihanKategori(); 
+    renderRiwayat();          
+    perbaruiGrafik();          
+    renderAnggaran();          
 }
 
-// === PERBARUI DAFTAR PILIHAN KATEGORI ===
+// === PERBARUI PILIHAN KATEGORI DI FORM TRANSAKSI ===
 function perbaruiPilihanKategori() {
     const pilihan = document.getElementById("kategoriTransaksi");
     if (!pilihan) return;
 
-    // Kosongkan daftar lama
-    pilihan.innerHTML = "";
+    const yangDipilih = pilihan.value; 
+    pilihan.innerHTML = ""; 
 
-    // Isi ulang dari data anggaran yang TERBARU
     Object.entries(anggaran).forEach(([k, data]) => {
         const opsi = document.createElement("option");
-        opsi.value = k; // Kode asli (makan, transportasi, dst.)
-        opsi.textContent = data.nama; // Nama yang sudah diubah
+        opsi.value = k;
+        opsi.textContent = data.nama;
         pilihan.appendChild(opsi);
     });
+    pilihan.value = yangDipilih;
 }
 
-// === TAMPILKAN DAFTAR ANGGARAN DENGAN TOMBOL EDIT & HAPUS ===
+// === TAMPILKAN DAFTAR ANGGARAN ===
 function renderAnggaran() {
     const wadah = document.getElementById("daftarAnggaran");
     wadah.innerHTML = "";
@@ -159,14 +196,14 @@ function renderAnggaran() {
         const terpakai = data.terpakai || 0;
         const batas = data.batas || 0;
         const persen = Math.min(100, (terpakai / batas) * 100);
-        let warnaBar = "#10b981"; // Hijau
-        if (persen >= 90) warnaBar = "#ef4444"; // Merah
-        else if (persen >= 70) warnaBar = "#f59e0b"; // Kuning
+        let warnaBar = "#10b981";
+        if (persen >= 90) warnaBar = "#ef4444";
+        else if (persen >= 70) warnaBar = "#f59e0b";
 
         wadah.innerHTML += `
             <div class="budget-item ${persen >= 100 ? 'danger' : ''}" data-kunci="${k}">
                 <div class="budget-header">
-                    <span class="nama-kategori" id="nama-${k}">${data.nama}</span>
+                    <span class="nama-kategori">${data.nama}</span>
                     <span class="angka-anggaran">
                         ${formatRupiah(terpakai)} / ${formatRupiah(batas)}
                     </span>
@@ -182,62 +219,74 @@ function renderAnggaran() {
         `;
     });
 
-    // === TOMBOL EDIT — BUKA FORM UBAH ===
+    // Tombol Tambah
+    wadah.innerHTML += `
+        <div class="tambah-kategori-baru">
+            <button id="btnTambahKategori" class="btn-tambah">
+                ➕ Tambah Kategori Baru
+            </button>
+        </div>
+    `;
+
+    // === FUNGSI TAMBAH ===
+    document.getElementById("btnTambahKategori").addEventListener("click", async () => {
+        const namaBaru = prompt("Masukkan nama kategori baru:(Contoh: 📚 Pendidikan)");
+        if (!namaBaru || namaBaru.trim().length < 2) return;
+
+        const batasBaru = prompt("Masukkan batas anggaran (Rp):", "100000");
+        if (!batasBaru) return;
+        const nilaiBatas = parseInt(batasBaru.replace(/\./g, "")) || 0;
+        if (nilaiBatas < 100) { alert("⚠️ Minimal Rp 100!"); return; }
+
+        const kodeBaru = "kat_" + Date.now();
+        anggaran[kodeBaru] = { nama: namaBaru.trim(), batas: nilaiBatas, terpakai: 0 };
+
+        await simpanPengaturanKeDB();
+        perbaruiPilihanKategori(); 
+        renderAnggaran();           
+        alert("✅ Kategori berhasil ditambahkan!");
+    });
+
+    // === FUNGSI EDIT ===
     document.querySelectorAll(".btn-edit").forEach(tombol => {
         tombol.addEventListener("click", async function () {
             const kunci = this.dataset.kunci;
             const data = anggaran[kunci];
             const namaBaru = prompt("Ubah nama kategori:", data.nama);
-            if (namaBaru === null || namaBaru.trim().length < 2) return;
+            if (!namaBaru || namaBaru.trim().length < 2) return;
 
             const batasBaru = prompt("Ubah batas anggaran (Rp):", data.batas);
-            if (batasBaru === null) return;
-            const nilaiBatas = parseInt(batasBaru) || 0;
-            if (nilaiBatas < 100) {
-                alert("⚠️ Minimal Rp 100!");
-                return;
-            }
+            if (!batasBaru) return;
+            const nilaiBatas = parseInt(batasBaru.replace(/\./g, "")) || 0;
+            if (nilaiBatas < 100) { alert("⚠️ Minimal Rp 100!"); return; }
 
             anggaran[kunci].nama = namaBaru.trim();
             anggaran[kunci].batas = nilaiBatas;
+
             await simpanPengaturanKeDB();
-            perbaruiSemua();
+            perbaruiPilihanKategori();
+            renderAnggaran();           
             alert("✅ Data berhasil diperbarui!");
         });
     });
 
-    // === TOMBOL HAPUS — HAPUS KATEGORI ===
+    // === FUNGSI HAPUS ===
     document.querySelectorAll(".btn-hapus").forEach(tombol => {
         tombol.addEventListener("click", async function () {
             const kunci = this.dataset.kunci;
             const nama = anggaran[kunci].nama;
-            const konfirmasi = confirm(`⚠️ Yakin ingin menghapus kategori:\n"${nama}"?\n\nSemua riwayat transaksi dalam kategori ini juga akan ikut terhapus!`);
-            if (!konfirmasi) return;
+            if (!confirm(`⚠️ Yakin ingin menghapus "${nama}"?`)) return;
 
-            // Hapus kategori dari daftar anggaran
             delete anggaran[kunci];
-
-            // Hapus semua transaksi dengan kategori ini
             transaksi = transaksi.filter(trx => trx.kategori !== kunci);
 
-            // Hapus juga dari Basis Data
-            const semuaId = transaksi.map(t => t.id);
-            const tx = db.transaction("transaksi", "readwrite");
-            const toko = tx.objectStore("transaksi");
-            const semuaData = await ambilSemuaTransaksiDariDB();
-            for (const trx of semuaData) {
-                if (trx.kategori === kunci) {
-                    toko.delete(trx.id);
-                }
-            }
-
             await simpanPengaturanKeDB();
-            perbaruiSemua();
+            perbaruiPilihanKategori(); 
+            renderAnggaran();           
             alert("✅ Kategori berhasil dihapus!");
         });
     });
 }
-
 // === TAMPILKAN RIWAYAT TRANSAKSI ===
 function renderRiwayat() {
     const wadah = document.getElementById("riwayatTransaksi");
@@ -314,12 +363,13 @@ function cekAnggaran(kategori, jumlahBaru) {
     }
 }
 
-// === ISI FORM PENGATURAN ===
+// === ISI FORM PENGATURAN DARI DATA TERBARU ===
 function isiFormPengaturan() {
     document.getElementById("inputGaji").value = GAJI_BULANAN;
     const wadah = document.getElementById("formAnggaran");
     wadah.innerHTML = "";
 
+    // 🔄 Isi ulang SEMUA kategori yang ADA SAAT INI (termasuk yang baru ditambah)
     Object.entries(anggaran).forEach(([k, data]) => {
         wadah.innerHTML += `
             <div class="form-group">
