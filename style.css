@@ -380,6 +380,31 @@ footer {
     background: #fecaca;
     transform: scale(1.1);
 }
+/* === TOMBOL TAMBAH KATEGORI BARU === */
+.tambah-kategori-baru {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 2px dashed #e5e7eb;
+    text-align: center;
+}
+
+.btn-tambah {
+    background: #10b981;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: 100%;
+}
+
+.btn-tambah:hover {
+    background: #059669;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2);
+}
 @media (max-width: 900px) {
     .row {
         grid-template-columns: 1fr;
